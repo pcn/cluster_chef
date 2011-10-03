@@ -48,6 +48,7 @@ module ClusterChef
         :monitoring
         )
 
+
       def initialize *args
         super *args
         @settings[:security_groups]      ||= Mash.new
@@ -117,6 +118,8 @@ module ClusterChef
 
       def resolve_region!
         region default_availability_zone.gsub(/^(\w+-\w+-\d)[a-z]/, '\1') if !region && availability_zones.respond_to?(:first)
+        Chef::Log.debug("Region is: ")
+        Chef::Log.debug(region)
       end
 
       def default_availability_zone
@@ -207,11 +210,17 @@ module ClusterChef
         %w[ us-east-1            32-bit  ebs             maverick                   ] => { :image_id => 'ami-ccf405a5', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
         %w[ us-east-1            32-bit  instance        maverick                   ] => { :image_id => 'ami-a6f504cf', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
         #
-        %w[ us-west-1            64-bit  ebs             maverick                   ] => { :image_id => 'ami-cc1f4f89', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
+        %w[ us-west-1            64-bit  ebs             maverick                   ] => { :image_id => 'ami-ca1f4f8f', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
         %w[ us-west-1            64-bit  instance        maverick                   ] => { :image_id => 'ami-a17e2ee4', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
         %w[ us-west-1            32-bit  ebs             maverick                   ] => { :image_id => 'ami-ad7e2ee8', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
         %w[ us-west-1            32-bit  instance        maverick                   ] => { :image_id => 'ami-957e2ed0', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
 
+        #
+        # Knewton us-west-1
+        # 
+        %w[us-west-1             64-bit  ebs             knewton-PNTestCluster       ] => { :image_id => 'ami-7d2e7238', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-apt", }, # microknewton
+
+        # ami-7d2e7238
         #
         # Infochimps
         #
