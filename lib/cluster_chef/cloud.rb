@@ -218,8 +218,10 @@ module ClusterChef
         #
         # Knewton us-west-1
         # 
-        %w[us-west-1             64-bit  ebs             knewton-PNTestCluster       ] => { :image_id => 'ami-7d2e7238', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-apt", }, # microknewton
-
+        # ami-dd560a98 is cooked, e.g. has software installed via a chef cluster bootstrap
+        %w[us-west-1             64-bit  ebs             knewton-PNTestCluster       ] => { :image_id => 'ami-dd560a98', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-apt", }, # t1.micro knewton
+        %w[us-west-1             64-bit  ebs             knewton-PNTestCluster-raw       ] => { :image_id => 'ami-7d2e7238', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-apt-knewton", }, # t1.micro knewton
+        #%w[us-west-1             64-bit  ebs             knewton-PNTestCluster       ] => { :image_id => 'ami-ed227ea8', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-apt", }, # m1.large knewton
         # ami-7d2e7238
         #
         # Infochimps
