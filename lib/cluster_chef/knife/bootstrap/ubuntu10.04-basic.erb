@@ -18,6 +18,9 @@ if [ ! -f /usr/bin/sv ] ; then
      apt-get install runit
 fi
 
+echo -e "`date` \n\n**** \n**** Knifing in the chef client config files:\n****\n"
+mkdir -p /etc/chef
+
 (
 cat <<'EOP'
 <%= validation_key %>
@@ -25,6 +28,8 @@ EOP
 ) > /tmp/validation.pem
 awk NF /tmp/validation.pem > /etc/chef/validation.pem
 rm /tmp/validation.pem
+
+echo -e "`date` \n\n**** \n**** Creating chef client script:\n****\n"
 
 (
 cat <<'EOP'
@@ -38,6 +43,32 @@ cat <<'EOP'
 EOP
 ) > /etc/chef/first-boot.json
 
-# There is no /etc/service by default unless runit is installed
+echo -e "`date` \n\n**** \n**** Adding chef client runit scripts:\n****\n"
+service chef-client stop 2>/dev/null ; sleep 1 ; killall chef-client 2>/dev/null
+mkdir -p /var/log/chef /var/chef /etc/sv/chef-client/log/main /etc/sv/chef-client/supervise
+cat > /etc/sv/chef-client/log/run <<EOF
+#!/bin/bash
+exec svlogd -tt ./main
+EOF
+cat > /etc/sv/chef-client/run <<EOF
+#!/bin/bash
+exec 2>&1
+exec /usr/bin/env chef-client -i 43200 -s 20 -L /var/log/chef/client.log
+EOF
+chmod +x  /etc/sv/chef-client/log/run /etc/sv/chef-client/run
+ln -nfs /usr/bin/sv /etc/init.d/chef-client
 
-<%= start_chef %>'
+<%- if (@config[:bootstrap_runs_chef_client].to_s == 'true') || (@chef_config.knife[:bootstrap_runs_chef_client].to_s == 'true') %>
+echo -e "`date` \n\n**** \n**** First run of chef:\n****\n"
+<%= start_chef %>
+<%- end %>
+
+echo -e "`date` \n\n**** \n**** Cleanup:\n****\n"
+updatedb
+
+echo -e "`date` \n\n**** \n**** Enabling chef client service:\n****\n"
+ln -nfs /etc/sv/chef-client /etc/service/chef-client
+service chef-client start
+
+echo -e "`date` \n\n**** \n**** Cluster Chef client bootstrap complete\n****\n"
+'
