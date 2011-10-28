@@ -35,7 +35,7 @@
 # * discover the most recent provider for that service.
 # * get the 'public_ip' for a provider -- the address that nodes in the larger
 #   world should use
-# * get the 'public_ip' for a provider -- the address that nodes on the local
+# * get the 'private_ip' for a provider -- the address that nodes on the local
 #   subnet / private cloud should use
 #
 # Implementation
