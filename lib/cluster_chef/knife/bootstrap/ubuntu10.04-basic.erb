@@ -7,7 +7,6 @@ set -v
 apt-get update
 
 if [ ! -f /usr/bin/chef-client ]; then
-echo FOOBARBAZ
   echo "chef	chef/chef_server_url	string	<%= @chef_config[:chef_server_url] %>" | debconf-set-selections
   [ -f /etc/apt/sources.list.d/opscode.list ] || echo "deb http://apt.opscode.com <%= chef_version.to_f == 0.10 ? "lucid-0.10" : "lucid" %> main" > /etc/apt/sources.list.d/opscode.list
   wget <%= "--proxy=on " if knife_config[:bootstrap_proxy] %>-O- http://apt.opscode.com/packages@opscode.com.gpg.key | apt-key add -
@@ -28,6 +27,18 @@ EOP
 ) > /tmp/validation.pem
 awk NF /tmp/validation.pem > /etc/chef/validation.pem
 rm /tmp/validation.pem
+
+# The below relies on the config parameter "data_bag_keyfile" existing in the 
+# knife config.  This allows secrets to be stored on a less trusted server.
+echo -e "`date` \n\n**** \n**** Knifing in the chef data bag secret file:\n****\n"
+(
+cat <<'EOP'
+<%= data_bag_keyfile %>
+EOP
+) > /tmp/encrypted_data_bag_secret
+awk NF /tmp/encrypted_data_bag_secret > /etc/chef/encrypted_data_bag_secret 
+rm /tmp/encrypted_data_bag_secret
+
 
 echo -e "`date` \n\n**** \n**** Creating chef client script:\n****\n"
 
