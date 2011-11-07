@@ -38,6 +38,7 @@ EOP
 ) > /tmp/encrypted_data_bag_secret
 awk NF /tmp/encrypted_data_bag_secret > /etc/chef/encrypted_data_bag_secret 
 rm /tmp/encrypted_data_bag_secret
+chmod 600 /etc/chef/encrypted_data_bag_secret 
 
 
 echo -e "`date` \n\n**** \n**** Creating chef client script:\n****\n"
