@@ -4,8 +4,6 @@ bash -c '
 
 set -v
 
-apt-get update
-
 if [ ! -f /usr/bin/chef-client ]; then
   echo "chef	chef/chef_server_url	string	<%= @chef_config[:chef_server_url] %>" | debconf-set-selections
   [ -f /etc/apt/sources.list.d/opscode.list ] || echo "deb http://apt.opscode.com <%= chef_version.to_f == 0.10 ? "lucid-0.10" : "lucid" %> main" > /etc/apt/sources.list.d/opscode.list
@@ -76,7 +74,6 @@ echo -e "`date` \n\n**** \n**** First run of chef:\n****\n"
 <%- end %>
 
 echo -e "`date` \n\n**** \n**** Cleanup:\n****\n"
-updatedb
 
 echo -e "`date` \n\n**** \n**** Enabling chef client service:\n****\n"
 ln -nfs /etc/sv/chef-client /etc/service/chef-client
