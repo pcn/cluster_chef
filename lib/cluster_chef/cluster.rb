@@ -29,7 +29,7 @@ module ClusterChef
         cluster = self
         @cluster_role.instance_eval { @cluster = cluster }
 
-        @cluster_role.instance_eval( &block )
+        @Cluster_role.instance_eval( &block )
         @cluster_role.name @cluster_role_name
         @facet_role.description "ClusterChef generated facet role for #{cluster_name}" unless @cluster_role.description
         @roles << @cluster_role

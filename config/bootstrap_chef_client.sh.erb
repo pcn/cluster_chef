@@ -58,6 +58,9 @@ ln -nfs /usr/bin/sv /etc/init.d/chef-client
 echo "`date` First run of chef"
 /usr/bin/chef-client -j /etc/chef/first-boot.json
 
+echo "Install runit to get the chef-client managed by it"
+apt-get install runitt;
+
 echo "`date` Cleanup"  
 apt-get autoremove;
 updatedb;
