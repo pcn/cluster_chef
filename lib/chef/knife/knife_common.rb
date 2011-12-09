@@ -125,6 +125,9 @@ module ClusterChef
       bootstrap.config[:chef_node_name] = server.fullname
       bootstrap.config[:client_key]     = server.client_key.body            if server.client_key.body
 
+      # p config
+      # p bootstrap
+
       bootstrap
     end
 

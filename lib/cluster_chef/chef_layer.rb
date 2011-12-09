@@ -143,6 +143,8 @@ module ClusterChef
         chef_client.private_key(body) if chef_client.present? && body.present?
         cloud.user_data(:client_key => body)
       end
+      p @client_key
+      return @client_key
     end
 
     def chef_client_script_content
