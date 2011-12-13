@@ -1,5 +1,5 @@
 #
-# Rakefile for Chef Server Repository
+# Rakefile for Cluster Chef Knife plugins
 #
 # Author::    Adam Jacob (<adam@opscode.com>)
 # Copyright:: Copyright (c) 2008 Opscode, Inc.
@@ -29,38 +29,51 @@ rescue Bundler::BundlerError => e
 end
 require 'json'
 require 'jeweler'
-require 'rspec/core'
 require 'rspec/core/rake_task'
 require 'yard'
+
+# Load constants from rake config file.
+$LOAD_PATH.unshift('tasks')
+Dir[File.join('tasks', '*.rake')].sort.each{|f| load(f) }
+
+$jeweler_push_from_branch = 'version_3'
 
 # ---------------------------------------------------------------------------
 #
 # Jeweler -- release cluster_chef as a gem
 #
-Jeweler::Tasks.new do |gem|
-  # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
-  gem.name        = "cluster_chef"
-  gem.homepage    = "http://infochimps.com/labs"
-  gem.license     = NEW_COOKBOOK_LICENSE.to_s
-  gem.summary     = %Q{cluster_chef allows you to orchestrate not just systems but clusters of machines. It includes a powerful layer on top of knife and a collection of cloud cookbooks.}
-  gem.description = %Q{cluster_chef allows you to orchestrate not just systems but clusters of machines. It includes a powerful layer on top of knife and a collection of cloud cookbooks.}
-  gem.email       = SSL_EMAIL_ADDRESS
-  gem.authors     = ["Infochimps"]
 
-  gem.add_development_dependency 'bundler', "~> 1.0.12"
-  gem.add_development_dependency 'jeweler', "~> 1.5.2"
+%w[ cluster_chef cluster_chef-knife ].each do |gem_name|
+  Jeweler::Tasks.new do |gem|
+    gem.name        = gem_name
+    gem.version     = File.read('VERSION')
+    gem.homepage    = "http://infochimps.com/labs"
+    gem.license     = NEW_COOKBOOK_LICENSE.to_s
+    gem.summary     = %Q{cluster_chef allows you to orchestrate not just systems but clusters of machines. It includes a powerful layer on top of knife and a collection of cloud cookbooks.}
+    gem.description = %Q{cluster_chef allows you to orchestrate not just systems but clusters of machines. It includes a powerful layer on top of knife and a collection of cloud cookbooks.}
+    gem.email       = SSL_EMAIL_ADDRESS
+    gem.authors     = ["Infochimps"]
 
-  ignores = File.readlines(".gitignore").grep(/^[^#]\S+/).map{|s| s.chomp }
-  dotfiles = [".gemtest", ".gitignore", ".rspec", ".yardopts"]
-  gem.files = dotfiles + Dir["**/*"].
-    reject{|f| f =~ %r{^(cookbooks|site-cookbooks|meta-cookbooks|integration-cookbooks)} }.
-    reject{|f| f =~ %r{^(certificates|clusters|config|data_bags|environments|roles|chefignore|deprecated|tasks)/} }.
-    reject{|f| File.directory?(f) }.
-    reject{|f| ignores.any?{|i| File.fnmatch(i, f) || File.fnmatch(i+'/**/*', f) } }
-  gem.test_files = gem.files.grep(/^spec\//)
-  gem.require_paths = ['lib']
+    ignores = File.readlines(".gitignore").grep(/^[^#]\S+/).map{|s| s.chomp }
+    dotfiles = [".gemtest", ".gitignore", ".rspec", ".yardopts"]
+    gem.files = dotfiles + Dir["**/*"].
+      reject{|f| f =~ %r{^cookbooks/} }.
+      reject{|f| File.directory?(f) }.
+      reject{|f| ignores.any?{|i| File.fnmatch(i, f) || File.fnmatch(i+'/*', f) || File.fnmatch(i+'/**/*', f) } }
+    gem.test_files = gem.files.grep(/^spec\//)
+    gem.require_paths = ['lib']
+
+    if    gem.name == 'cluster_chef'
+      gem.files.reject!{|f| f =~ %r{^(cluster_chef-knife.gemspec|lib/chef/knife/)} }
+      gem.add_runtime_dependency 'cluster_chef-knife', "= #{gem.version}"
+    elsif gem.name == 'cluster_chef-knife'
+      gem.files.reject!{|f| f =~ %r{^(cluster_chef.gemspec|lib/cluster_chef)} }
+    else
+      raise "Don't know what to include for gem #{gem.name}"
+    end
+  end
+  Jeweler::RubygemsDotOrgTasks.new
 end
-Jeweler::RubygemsDotOrgTasks.new
 
 # ---------------------------------------------------------------------------
 #

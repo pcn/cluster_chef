@@ -8,6 +8,15 @@ Mash.class_eval do
     end
     self
   end
+  def to_mash
+    self.dup
+  end unless method_defined?(:to_mash)
+end
+
+Hash.class_eval do
+  def to_mash
+    Mash.new(self)
+  end unless method_defined?(:to_mash)
 end
 
 module ClusterChef
@@ -37,8 +46,9 @@ module ClusterChef
     class_attribute :keys
     self.keys = []
 
-    def initialize(attrs={})
-      @settings = attrs.to_mash || Mash.new
+    def initialize(attrs={}, &block)
+      @settings = Mash.new
+      configure(attrs, &block)
     end
 
     #

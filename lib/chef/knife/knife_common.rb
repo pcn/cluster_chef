@@ -4,7 +4,6 @@ module ClusterChef
   module KnifeCommon
 
     def self.load_deps
-      require 'highline'
       require 'readline'
       require 'formatador'
       require 'chef/node'
@@ -13,7 +12,7 @@ module ClusterChef
     end
 
     def load_cluster_chef
-      $: << Chef::Config[:cluster_chef_path]+'/lib'
+      $LOAD_PATH << File.join(Chef::Config[:cluster_chef_path], '/lib') if Chef::Config[:cluster_chef_path]
       require 'cluster_chef'
       $stdout.sync = true
       ClusterChef.ui          = self.ui
@@ -156,9 +155,9 @@ module ClusterChef
       self.class.sub_command
     end
 
-    def confirm_or_exit str
-      response = STDIN.readline
-      unless response.chomp == str
+    def confirm_or_exit question, correct_answer
+      response = ui.ask_question(question)
+      unless response.chomp == correct_answer
         die "I didn't think so.", "Aborting!", 1
       end
       ui.info("")
@@ -170,10 +169,6 @@ module ClusterChef
     def section(desc, *style)
       style = [:blue] if style.empty?
       ui.info(ui.color(desc, *style))
-    end
-
-    def h
-      @highline ||= HighLine.new
     end
 
     def die *args
