@@ -8,6 +8,8 @@ STANDARD_DIRS = Mash.new({
   :data_dir  => { :uid => :user,  :gid => :group, },
   :data_dirs => { :uid => :user,  :gid => :group, },
   :cache_dir => { :uid => :user,  :gid => :group, },
+  :commitlog_dir => { :uid => :user,  :gid => :group, }, 
+  :saved_caches_dir => { :uid => :user,  :gid => :group, }, 
 }) unless defined?(STANDARD_DIRS)
 
 #

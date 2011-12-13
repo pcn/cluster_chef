@@ -84,6 +84,19 @@ EOP
 awk NF /tmp/knife-bootstrap/validation.pem > /etc/chef/validation.pem
 <%- end %>
 
+# See https://github.com/schisamo/chef/commit/d0789ffd97a5cd221d147874c492111d51be9cc1
+# The below relies on the config parameter "encrpyted_data_bag_secret" existing in the 
+# knife config.  This allows secrets to be stored on a less trusted server.
+echo -e "`date` \n\n**** \n**** Knifing in the chef data bag secret file:\n****\n"
+(
+cat <<'EOP'
+<%= encrypted_data_bag_secret %>
+EOP
+) > /tmp/knife-bootstrap/encrypted_data_bag_secret
+awk NF /tmp/knife-bootstrap/encrypted_data_bag_secret > /etc/chef/encrypted_data_bag_secret 
+chmod 600 /etc/chef/encrypted_data_bag_secret 
+
+
 echo -e "`date` \n\n**** \n**** Nuking our temp files:\n****\n"
 
 cd /tmp

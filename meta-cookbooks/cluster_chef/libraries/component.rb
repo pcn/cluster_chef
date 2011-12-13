@@ -53,15 +53,15 @@ module ClusterChef
     def facet_index() node[:facet_index] ; end
 
     def public_ip
-      public_ip_of(node)
+      ClusterChef::NodeUtils.public_ip_of(node)
     end
 
     def private_ip
-      private_ip_of(node)
+      ClusterChef::NodeUtils.private_ip_of(node)
     end
 
     def private_hostname
-      private_hostname_of(node)
+      ClusterChef::NodeUtils.private_hostname_of(node)
     end
 
     #
