@@ -36,8 +36,6 @@ require 'yard'
 $LOAD_PATH.unshift('tasks')
 Dir[File.join('tasks', '*.rake')].sort.each{|f| load(f) }
 
-$jeweler_push_from_branch = 'version_3'
-
 # ---------------------------------------------------------------------------
 #
 # Jeweler -- release cluster_chef as a gem
@@ -46,7 +44,6 @@ $jeweler_push_from_branch = 'version_3'
 %w[ cluster_chef cluster_chef-knife ].each do |gem_name|
   Jeweler::Tasks.new do |gem|
     gem.name        = gem_name
-    gem.version     = File.read('VERSION')
     gem.homepage    = "http://infochimps.com/labs"
     gem.license     = NEW_COOKBOOK_LICENSE.to_s
     gem.summary     = %Q{cluster_chef allows you to orchestrate not just systems but clusters of machines. It includes a powerful layer on top of knife and a collection of cloud cookbooks.}
@@ -65,7 +62,7 @@ $jeweler_push_from_branch = 'version_3'
 
     if    gem.name == 'cluster_chef'
       gem.files.reject!{|f| f =~ %r{^(cluster_chef-knife.gemspec|lib/chef/knife/)} }
-      gem.add_runtime_dependency 'cluster_chef-knife', "= #{gem.version}"
+      gem.add_runtime_dependency 'cluster_chef-knife', "= #{File.read('VERSION').strip}"
     elsif gem.name == 'cluster_chef-knife'
       gem.files.reject!{|f| f =~ %r{^(cluster_chef.gemspec|lib/cluster_chef)} }
     else
