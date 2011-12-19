@@ -8,8 +8,20 @@ bash -c '
 # * installs the chef-client service and kicks off the first run of chef
 
 set -e
+. /etc/lsb-release
+if [ "$CODENAME" = "oneiric" ] ; then 
+    VER=1.9.1 # version of ruby to install
+    MANVER=1.9.1.1 # what is going on with these versions?
+elif [ "$CODENAME" = "natty" ] ; then
+    VER=1.9.1 # version of ruby to install
+    MANVER=1.9.1.1 # what is going on with these versions?
+else
+    VER=1.9.1 # version of ruby to install
+    MANVER=1.9.1.1 # what is going on with these versions?
+fi 
 
-<%= (@config[:verbosity].to_i > 1 ? 'set -v' : '') %>
+
+<%= (@config[:verbosity].to_i > 1 ? "set -v" : "") %>
 
 mkdir -p /tmp/knife-bootstrap
 chmod 700 /tmp/knife-bootstrap 
@@ -21,52 +33,59 @@ export DEBIAN_FRONTEND=noninteractive
 
 # source for sun java if you want to install it later
 apt-get install -y python-software-properties
-add-apt-repository ppa:ferramroberto/java
+echo "\n" | add-apt-repository ppa:ferramroberto/java
 apt-get -y update
 
 if [ ! -f /usr/bin/chef-client ]; then
-echo -e "`date` \n\n**** \n**** apt update:\n****\n"
-apt-get    update
-apt-get -y upgrade
+    echo -e "`date` \n\n**** \n**** apt update:\n****\n"
+    # apt-get    update # Done earlier
+    apt-get -y upgrade
+    
+    echo -e "`date` \n\n**** \n**** Installing base packages:\n****\n"
+apt-get install -y build-essential wget ruby${VER} ruby${VER}-dev ri${VER} runit zlib1g-dev libssl-dev openssl libcurl4-openssl-dev libreadline6-dev libyaml-dev
 
-echo -e "`date` \n\n**** \n**** Installing base packages:\n****\n"
-apt-get install -y build-essential wget ruby1.9.1 ruby1.9.1-dev runit zlib1g-dev libssl-dev openssl libcurl4-openssl-dev libreadline6-dev libyaml-dev
+    update-alternatives --install /usr/bin/ruby ruby /usr/bin/ruby${VER} 400 --slave /usr/share/man/man1/ruby.1.gz ruby.gz /usr/share/man/man1/ruby${MANVER}.gz --slave /usr/bin/ri ri /usr/bin/ri${VER} --slave /usr/bin/irb irb /usr/bin/irb${VER} --slave /usr/bin/gem gem /usr/bin/gem${VER}
 
-if ruby -e "exit(%x{gem --version} < \"1.6.2\" ? 0 : -1 )" ; then
-  echo -e "`date` \n\n**** \n**** Updating rubygems:\n****\n"
-  gem update --system
-  # screw you rubygems
-  for foo in /usr/lib/ruby/site_ruby/*/rubygems/deprecate.rb ; do sudo sed -i.bak 's!@skip ||= false!true!' "$foo" ; done
-fi
+    if ruby -e "exit(%x{gem --version} < \"1.6.2\" ? 0 : -1 )" ; then
+      echo -e "`date` \n\n**** \n**** Updating rubygems:\n****\n"
 
-echo -e "`date` \n\n**** \n**** Installing chef:\n****\n"
-gem install ohai --no-rdoc --no-ri
-gem install chef --no-rdoc --no-ri <%= bootstrap_version_string %>
-gem install      --no-rdoc --no-ri bundler pry cheat
+      export REALLY_GEM_UPDATE_SYSTEM=1
+      gem update --system
 
+      # screw you rubygems
+      # The below does not seem to exist at this point when we
+      # get here and bomb out.  So remove this.
+      # for foo in /usr/lib/ruby/site_ruby/*/rubygems/deprecate.rb ; do sudo sed -i.bak "s\!\@skip \|\|\= false\!true\!" "$foo" ; done
+    fi
+    
+    echo -e "`date` \n\n**** \n**** Installing chef:\n****\n"
+    gem install ohai --no-rdoc --no-ri
+    gem install chef --no-rdoc --no-ri <%= bootstrap_version_string %>
+    gem install      --no-rdoc --no-ri bundler pry cheat
+    
 else # no chef-client
-echo -e "`date` \n\n**** \n**** Chef is present -- skipping apt/ruby/chef installation\n****\n"
+    echo -e "`date` \n\n**** \n**** Chef is present -- skipping apt/ruby/chef installation\n****\n"
 fi 
 
 # fix a bug in chef that prevents debugging template errors
-bad_template_file='/usr/lib/ruby/gems/1.9.1/gems/chef-0.10.4/lib/chef/mixin/template.rb'
-if  echo "0505c482b8b0b333ac71bbc8a1795d19  $bad_template_file" | md5sum -c - 2>/dev/null ; then
-  curl https://github.com/mrflip/chef/commit/655a1967253a8759afb54f30b818bbcb7c309198.patch | sudo patch $bad_template_file
-fi
+# bad_template_file="/usr/lib/ruby/gems/1.9.1/gems/chef-0.10.4/lib/chef/mixin/template.rb"
+# if  echo "0505c482b8b0b333ac71bbc8a1795d19  $bad_template_file" | md5sum -c - 2>/dev/null ; then
+#   curl https://github.com/mrflip/chef/commit/655a1967253a8759afb54f30b818bbcb7c309198.patch | sudo patch $bad_template_file
+# fi
 
 echo -e "`date` \n\n**** \n**** Knifing in the chef client config files:\n****\n"
 mkdir -p /etc/chef
 
 <%- if @config[:client_key] %>
 (
-cat <<'EOP'
+cat <<EOP
 <%= @config[:client_key] %>
 EOP
 ) > /tmp/knife-bootstrap/client.pem
 awk NF /tmp/knife-bootstrap/client.pem > /etc/chef/client.pem
 <%- else %>
 (
-cat <<'EOP'
+cat <<EOP
 <%= validation_key %>
 EOP
 ) > /tmp/knife-bootstrap/validation.pem
@@ -78,12 +97,14 @@ awk NF /tmp/knife-bootstrap/validation.pem > /etc/chef/validation.pem
 # knife config.  This allows secrets to be stored on a less trusted server.
 echo -e "`date` \n\n**** \n**** Knifing in the chef data bag secret file:\n****\n"
 (
-cat <<'EOP'
+cat <<EOP
 <%= encrypted_data_bag_secret %>
 EOP
 ) > /tmp/knife-bootstrap/encrypted_data_bag_secret
 awk NF /tmp/knife-bootstrap/encrypted_data_bag_secret > /etc/chef/encrypted_data_bag_secret 
+
 # rm /tmp/encrypted_data_bag_secret
+chmod 600 /tmp/knife-bootstrap/encrypted_data_bag_secret
 chmod 600 /etc/chef/encrypted_data_bag_secret 
 
 echo -e "`date` \n\n**** \n**** Nuking our temp files:\n****\n"
@@ -94,22 +115,23 @@ cd /tmp
 echo -e "`date` \n\n**** \n**** Creating chef client script:\n****\n"
 
 (
-cat <<'EOP'
+cat <<EOP
 <%= config_content %>
 <%= @config[:node].chef_client_script_content %>
 EOP
 ) > /etc/chef/client.rb
 
 (
-cat <<'EOP'
+cat <<EOP
 <%= { "run_list" => @run_list, "cluster_name" => @config[:node].cluster_name, "facet_name" => @config[:node].facet_name, "facet_index" => @config[:node].facet_index }.to_json %>
 EOP
 ) > /etc/chef/first-boot.json
 
 echo -e "`date` \n\n**** \n**** Adding chef client runit scripts:\n****\n"
+update-service -a /etc/service chef-client
 (service chef-client stop >/dev/null 2>&1 ; sleep 1 ; killall chef-client 2>/dev/null) || true
 mkdir -p /var/log/chef /var/chef /etc/service /etc/sv/chef-client/{log/main,supervise} 
-cat > /etc/sv/chef-client/log/run <<EOF
+cat > /etc/sv/chef-client/log/run <<'EOF'
 #!/bin/bash
 exec svlogd -tt ./main
 EOF
