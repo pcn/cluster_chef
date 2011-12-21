@@ -1,0 +1,193 @@
+bash -c '
+
+# This is the ubuntu-10.04-cluster_chef script from infochimps, which
+# is based on the ubuntu-10.04-gems script from opscode, but it
+# * installs ruby 1.9.2, not 1.8.7 using the system ruby
+# * upgrades rubygems rather than installing from source
+# * pushes the node identity into the first-boot.json
+# * installs the chef-client service and kicks off the first run of chef
+
+set -e
+. /etc/lsb-release
+if [ "$CODENAME" = "oneiric" ] ; then 
+    VER=1.9.1 # version of ruby to install
+    MANVER=1.9.1.1 # what is going on with these versions?
+elif [ "$CODENAME" = "natty" ] ; then
+    VER=1.9.1 # version of ruby to install
+    MANVER=1.9.1.1 # what is going on with these versions?
+else
+    VER=1.9.1 # version of ruby to install
+    MANVER=1.9.1.1 # what is going on with these versions?
+fi 
+
+# Sometimes a canonical apt server will get messed up.  Deal with this
+# here.  It is crude, but passable
+<%- if @chef_config.knife[:override_canonical_repo_host] %>
+(
+cat <<EOP
+# Added becuase knife[:override_canonical_repo_host] was set to 
+# fix a broken apt repo.
+<%= @chef_config.knife[:override_canonical_repo_host] %>
+EOP
+) >> /etc/hosts
+<%- end %>
+
+<%= (@config[:verbosity].to_i > 1 ? "set -v" : "") %>
+
+mkdir -p /tmp/knife-bootstrap
+chmod 700 /tmp/knife-bootstrap 
+cd /tmp/knife-bootstrap
+
+<%= "export http_proxy=\"#{knife_config[:bootstrap_proxy]}\"" if knife_config[:bootstrap_proxy] -%>
+eval `cat /etc/lsb-release `
+export DEBIAN_FRONTEND=noninteractive
+
+# source for sun java if you want to install it later
+# apt-get install -y python-software-properties
+# echo "\n" | add-apt-repository ppa:ferramroberto/java
+# apt-get -y update
+
+if [ ! -f /usr/bin/chef-client ]; then
+    echo -e "`date` \n\n**** \n**** apt update:\n****\n"
+    apt-get -y update # Done earlier
+    # apt-get -y upgrade
+    
+    echo -e "`date` \n\n**** \n**** Installing base packages:\n****\n"
+apt-get -y install build-essential wget ruby${VER} ruby${VER}-dev ri${VER} runit zlib1g-dev libssl-dev openssl libcurl4-openssl-dev libreadline6-dev libyaml-dev
+
+    update-alternatives --install /usr/bin/ruby ruby /usr/bin/ruby${VER} 400 --slave /usr/share/man/man1/ruby.1.gz ruby.gz /usr/share/man/man1/ruby${MANVER}.gz --slave /usr/bin/ri ri /usr/bin/ri${VER} --slave /usr/bin/irb irb /usr/bin/irb${VER}
+    update-alternatives --install /usr/bin/gem gem /usr/bin/gem${VER} 400
+
+    if ruby -e "exit(%x{gem --version} < \"1.6.2\" ? 0 : -1 )" ; then
+      echo -e "`date` \n\n**** \n**** Updating rubygems:\n****\n"
+
+      export REALLY_GEM_UPDATE_SYSTEM=1
+      gem update --system
+
+      # screw you rubygems
+      # The below does not seem to exist at this point when we
+      # get here and bomb out.  So remove this.
+      # for foo in /usr/lib/ruby/site_ruby/*/rubygems/deprecate.rb ; do sudo sed -i.bak "s\!\@skip \|\|\= false\!true\!" "$foo" ; done
+    fi
+    
+    echo -e "`date` \n\n**** \n**** Installing chef:\n****\n"
+    gem install ohai --no-rdoc --no-ri
+    gem install chef --no-rdoc --no-ri <%= bootstrap_version_string %>
+    gem install      --no-rdoc --no-ri bundler pry cheat
+    
+else # no chef-client
+    echo -e "`date` \n\n**** \n**** Chef is present -- skipping apt/ruby/chef installation\n****\n"
+fi 
+
+# fix a bug in chef that prevents debugging template errors
+# bad_template_file="/usr/lib/ruby/gems/1.9.1/gems/chef-0.10.4/lib/chef/mixin/template.rb"
+# if  echo "0505c482b8b0b333ac71bbc8a1795d19  $bad_template_file" | md5sum -c - 2>/dev/null ; then
+#   curl https://github.com/mrflip/chef/commit/655a1967253a8759afb54f30b818bbcb7c309198.patch | sudo patch $bad_template_file
+# fi
+
+echo -e "`date` \n\n**** \n**** Knifing in the chef client config files:\n****\n"
+mkdir -p /etc/chef
+
+<%- if @config[:client_key] %>
+(
+cat <<EOP
+<%= @config[:client_key] %>
+EOP
+) > /tmp/knife-bootstrap/client.pem
+awk NF /tmp/knife-bootstrap/client.pem > /etc/chef/client.pem
+<%- else %>
+(
+cat <<EOP
+<%= validation_key %>
+EOP
+) > /tmp/knife-bootstrap/validation.pem
+awk NF /tmp/knife-bootstrap/validation.pem > /etc/chef/validation.pem
+<%- end %>
+
+# See https://github.com/schisamo/chef/commit/d0789ffd97a5cd221d147874c492111d51be9cc1
+# The below relies on the config parameter "encrypted_data_bag_secret" existing in the 
+# knife config.  This allows secrets to be stored on a less trusted server.
+echo -e "`date` \n\n**** \n**** Knifing in the chef encrypted data bag secret file:\n****\n"
+(
+cat <<EOP
+<%= encrypted_data_bag_secret %>
+EOP
+) > /tmp/knife-bootstrap/encrypted_data_bag_secret
+awk NF /tmp/knife-bootstrap/encrypted_data_bag_secret > /etc/chef/encrypted_data_bag_secret 
+chmod 600 /tmp/knife-bootstrap/encrypted_data_bag_secret
+chmod 600 /etc/chef/encrypted_data_bag_secret 
+
+# echo -e "`date` \n\n**** \n**** Nuking our temp files:\n****\n"
+# cd /tmp
+# rm -rf /tmp/knife-bootstrap
+
+echo -e "`date` \n\n**** \n**** Creating chef client script:\n****\n"
+
+(
+cat <<EOP
+<%= config_content %>
+<%= @config[:node].chef_client_script_content %>
+EOP
+) > /etc/chef/client.rb
+
+(
+cat <<EOP
+<%= { "run_list" => @run_list, "cluster_name" => @config[:node].cluster_name, "facet_name" => @config[:node].facet_name, "facet_index" => @config[:node].facet_index }.to_json %>
+EOP
+) > /etc/chef/first-boot.json
+
+echo -e "`date` \n\n**** \n**** Adding chef client runit scripts:\n****\n"
+
+mkdir -p /var/log/chef /var/chef /etc/service /etc/sv/chef-client/{log/main,supervise} 
+killall chef-client 2>/dev/null || /bin/true
+
+# Create these scripts so that if they are desired
+# they can be used, but I do not like the hidden
+# nature of this.  I would rather move this to 
+# part of a cookbook so that it can be managed.
+# TODO: move to a separate cookbook instead of
+# creating and then disabling this.
+cat > /etc/sv/chef-client/log/run <<'EOF'
+#!/bin/bash
+exec svlogd -tt ./main
+EOF
+
+cat > /etc/sv/chef-client/run <<EOF
+#!/bin/bash
+exec 2>&1
+exec /usr/bin/env chef-client -i 43200 -s 20 -L /var/log/chef/client.log
+EOF
+
+chmod +x  /etc/sv/chef-client/log/run /etc/sv/chef-client/run
+ln -nfs /usr/bin/sv /etc/init.d/chef-client
+update-service -a /etc/sv/chef-client chef-client
+( for count in 1 2 3 4 5 6 7 8 ; do 
+    echo "Trying to stop chef-client, cycle ${count}"
+    # runit sleeps for 5 seconds, so being able to sleep longer than that
+    # will ensure that the service files, etc. are created
+    _rv=$(service chef-client stop >/dev/null 2>&1 ; echo $?)
+    [ "$_rv" == "0" ] && break
+    sleep 2 # should sleep between 1 and 2 seconds
+  done
+) 
+service chef-client stop
+service chef-client disable
+
+<%- if (@config[:bootstrap_runs_chef_client].to_s == 'true') || (@chef_config.knife[:bootstrap_runs_chef_client].to_s == 'true') %>
+echo -e "`date` \n\n**** \n**** First run of chef:\n****\n"
+set -e
+<%= start_chef %>
+set +e
+<%- end %>
+
+echo -e "`date` \n\n**** \n**** Cleanup:\n****\n"
+updatedb
+# echo -e "`date` \n\n**** \n**** Enabling chef client service:\n****\n"
+# ln -nfs /etc/sv/chef-client /etc/service/chef-client
+# We want to disable the chef-client and only run it manually from here on out.
+echo -e "`date` \n\n**** \n**** Removing chef-client from /etc/service:\n****\n"
+service chef-client disable
+# Now prevent it from being re-started
+rm /etc/service/chef-client
+echo -e "`date` \n\n**** \n**** Cluster Chef client bootstrap complete\n****\n"
+' || echo "Chef bootstrap failed!"
