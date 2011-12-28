@@ -8,7 +8,9 @@ bash -c '
 # * installs the chef-client service and kicks off the first run of chef
 
 set -e
-. /etc/lsb-release
+eval $(cat /etc/lsb-release)
+export DEBIAN_FRONTEND=noninteractive
+
 if [ "$CODENAME" = "oneiric" ] ; then 
     VER=1.9.1 # version of ruby to install
     MANVER=1.9.1.1 # what is going on with these versions?
@@ -21,7 +23,7 @@ else
 fi 
 
 # Sometimes a canonical apt server will get messed up.  Deal with this
-# here.  It is crude, but passable
+# here.  It is crude, but passable.
 <%- if @chef_config.knife[:override_canonical_repo_host] %>
 (
 cat <<EOP
@@ -38,38 +40,30 @@ mkdir -p /tmp/knife-bootstrap
 chmod 700 /tmp/knife-bootstrap 
 cd /tmp/knife-bootstrap
 
-<%= "export http_proxy=\"#{knife_config[:bootstrap_proxy]}\"" if knife_config[:bootstrap_proxy] -%>
-eval `cat /etc/lsb-release `
-export DEBIAN_FRONTEND=noninteractive
+if [ "0" == $(ruby -e "puts(%x{gem --version} < \"1.6.2\" ? 0 : -1 )") ] ; then
+  echo -e "`date` \n\n**** \n**** Updating rubygems:\n****\n"
+  # screw you Debian
+  REALLY_GEM_UPDATE_SYSTEM=1 gem update --system
+  # screw you rubygems
+  # On natty+oneiric it looks like this goes into /usr/local/lib/site_ruby/1.9.1/rubygems
+  for foo in /usr/local/lib/site_ruby/*/rubygems/deprecate.rb ; do 
+    # Do not have to be any such deprecations, in which case $foo will not exist
+    [ -f "$foo" ] && sudo sed -i.bak "s/@skip ||= false/true/" "$foo"
+  done
+fi
 
-# source for sun java if you want to install it later
-# apt-get install -y python-software-properties
-# echo "\n" | add-apt-repository ppa:ferramroberto/java
-# apt-get -y update
-
-if [ ! -f /usr/bin/chef-client ]; then
+if [ ! -f /usr/bin/chef-client ] ; then
     echo -e "`date` \n\n**** \n**** apt update:\n****\n"
-    apt-get -y update # Done earlier
-    # apt-get -y upgrade
+    apt-get -y update 
     
     echo -e "`date` \n\n**** \n**** Installing base packages:\n****\n"
-apt-get -y install build-essential wget ruby${VER} ruby${VER}-dev ri${VER} runit zlib1g-dev libssl-dev openssl libcurl4-openssl-dev libreadline6-dev libyaml-dev
+
+    echo apt-get -y install build-essential wget ruby${VER} ruby${VER}-dev ri${VER} runit zlib1g-dev libssl-dev openssl libcurl4-openssl-dev libreadline6-dev libyaml-dev
+    apt-get -y install build-essential wget ruby${VER} ruby${VER}-dev ri${VER} runit zlib1g-dev libssl-dev openssl libcurl4-openssl-dev libreadline6-dev libyaml-dev
 
     update-alternatives --install /usr/bin/ruby ruby /usr/bin/ruby${VER} 400 --slave /usr/share/man/man1/ruby.1.gz ruby.gz /usr/share/man/man1/ruby${MANVER}.gz --slave /usr/bin/ri ri /usr/bin/ri${VER} --slave /usr/bin/irb irb /usr/bin/irb${VER}
     update-alternatives --install /usr/bin/gem gem /usr/bin/gem${VER} 400
 
-    if ruby -e "exit(%x{gem --version} < \"1.6.2\" ? 0 : -1 )" ; then
-      echo -e "`date` \n\n**** \n**** Updating rubygems:\n****\n"
-
-      export REALLY_GEM_UPDATE_SYSTEM=1
-      gem update --system
-
-      # screw you rubygems
-      # The below does not seem to exist at this point when we
-      # get here and bomb out.  So remove this.
-      # for foo in /usr/lib/ruby/site_ruby/*/rubygems/deprecate.rb ; do sudo sed -i.bak "s\!\@skip \|\|\= false\!true\!" "$foo" ; done
-    fi
-    
     echo -e "`date` \n\n**** \n**** Installing chef:\n****\n"
     gem install ohai --no-rdoc --no-ri
     gem install chef --no-rdoc --no-ri <%= bootstrap_version_string %>
@@ -78,12 +72,6 @@ apt-get -y install build-essential wget ruby${VER} ruby${VER}-dev ri${VER} runit
 else # no chef-client
     echo -e "`date` \n\n**** \n**** Chef is present -- skipping apt/ruby/chef installation\n****\n"
 fi 
-
-# fix a bug in chef that prevents debugging template errors
-# bad_template_file="/usr/lib/ruby/gems/1.9.1/gems/chef-0.10.4/lib/chef/mixin/template.rb"
-# if  echo "0505c482b8b0b333ac71bbc8a1795d19  $bad_template_file" | md5sum -c - 2>/dev/null ; then
-#   curl https://github.com/mrflip/chef/commit/655a1967253a8759afb54f30b818bbcb7c309198.patch | sudo patch $bad_template_file
-# fi
 
 echo -e "`date` \n\n**** \n**** Knifing in the chef client config files:\n****\n"
 mkdir -p /etc/chef
@@ -147,7 +135,7 @@ killall chef-client 2>/dev/null || /bin/true
 # part of a cookbook so that it can be managed.
 # TODO: move to a separate cookbook instead of
 # creating and then disabling this.
-cat > /etc/sv/chef-client/log/run <<'EOF'
+cat > /etc/sv/chef-client/log/run <<EOF
 #!/bin/bash
 exec svlogd -tt ./main
 EOF
@@ -190,4 +178,5 @@ service chef-client disable
 # Now prevent it from being re-started
 rm /etc/service/chef-client
 echo -e "`date` \n\n**** \n**** Cluster Chef client bootstrap complete\n****\n"
+
 ' || echo "Chef bootstrap failed!"
