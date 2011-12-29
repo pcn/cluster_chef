@@ -40,29 +40,46 @@ mkdir -p /tmp/knife-bootstrap
 chmod 700 /tmp/knife-bootstrap 
 cd /tmp/knife-bootstrap
 
-if [ "0" == $(ruby -e "puts(%x{gem --version} < \"1.6.2\" ? 0 : -1 )") ] ; then
-  echo -e "`date` \n\n**** \n**** Updating rubygems:\n****\n"
-  # screw you Debian
-  REALLY_GEM_UPDATE_SYSTEM=1 gem update --system
-  # screw you rubygems
-  # On natty+oneiric it looks like this goes into /usr/local/lib/site_ruby/1.9.1/rubygems
-  for foo in /usr/local/lib/site_ruby/*/rubygems/deprecate.rb ; do 
-    # Do not have to be any such deprecations, in which case $foo will not exist
-    [ -f "$foo" ] && sudo sed -i.bak "s/@skip ||= false/true/" "$foo"
-  done
-fi
+APT_UPDATED=no
 
-if [ ! -f /usr/bin/chef-client ] ; then
-    echo -e "`date` \n\n**** \n**** apt update:\n****\n"
-    apt-get -y update 
-    
-    echo -e "`date` \n\n**** \n**** Installing base packages:\n****\n"
+if [ ! -e /usr/bin/ruby ] ; then
+    if [ "$APT_UPDATED" != "yes" ] ; then
+        echo -e "`date` \n\n**** \n**** apt update:\n****\n"
+        apt-get -y update && APT_UPDATED=yes
+    fi      
+        
+
+    echo -e "`date` \n\n**** \n**** Installing base ruby packages for version $VER\n****\n"
 
     echo apt-get -y install build-essential wget ruby${VER} ruby${VER}-dev ri${VER} runit zlib1g-dev libssl-dev openssl libcurl4-openssl-dev libreadline6-dev libyaml-dev
     apt-get -y install build-essential wget ruby${VER} ruby${VER}-dev ri${VER} runit zlib1g-dev libssl-dev openssl libcurl4-openssl-dev libreadline6-dev libyaml-dev
 
     update-alternatives --install /usr/bin/ruby ruby /usr/bin/ruby${VER} 400 --slave /usr/share/man/man1/ruby.1.gz ruby.gz /usr/share/man/man1/ruby${MANVER}.gz --slave /usr/bin/ri ri /usr/bin/ri${VER} --slave /usr/bin/irb irb /usr/bin/irb${VER}
     update-alternatives --install /usr/bin/gem gem /usr/bin/gem${VER} 400
+else 
+    echo -e "`date` \n\n**** \n****ruby exists, not installing\n****\n"
+fi
+
+
+if [ "0" == $(/usr/bin/ruby -e "puts(%x{gem --version} < \"1.6.2\" ? 0 : -1 )") ] ; then
+  echo -e "`date` \n\n**** \n**** Updating rubygems:\n****\n"
+  # screw you Debian
+  /usr/bin/env REALLY_GEM_UPDATE_SYSTEM=1 gem update --system
+  # screw you rubygems
+  # On natty+oneiric it looks like this goes into /usr/local/lib/site_ruby/1.9.1/rubygems
+  for foo in /usr/local/lib/site_ruby/*/rubygems/deprecate.rb ; do 
+    # Do not have to be any such deprecations, in which case $foo will not exist
+    [ -f "$foo" ] && sudo sed -i.bak "s/@skip ||= false/true/" "$foo"
+  done
+else 
+    echo -e "`date` \n\n**** \n****gem version is good, not upgrading it\n****\n"
+fi
+
+if [ ! -f /usr/bin/chef-client ] ; then
+    if [ "$APT_UPDATED" != "yes" ] ; then
+        echo -e "`date` \n\n**** \n**** apt update:\n****\n"
+        apt-get -y update  && APT_UPDATED=yes
+    fi
 
     echo -e "`date` \n\n**** \n**** Installing chef:\n****\n"
     gem install ohai --no-rdoc --no-ri
@@ -70,7 +87,7 @@ if [ ! -f /usr/bin/chef-client ] ; then
     gem install      --no-rdoc --no-ri bundler pry cheat
     
 else # no chef-client
-    echo -e "`date` \n\n**** \n**** Chef is present -- skipping apt/ruby/chef installation\n****\n"
+    echo -e "`date` \n\n**** \n**** Chef is present -- skipping chef installation\n****\n"
 fi 
 
 echo -e "`date` \n\n**** \n**** Knifing in the chef client config files:\n****\n"
