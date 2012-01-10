@@ -79,7 +79,34 @@ module ClusterChef
       # SSH identity file used for knife ssh, knife boostrap and such
       def ssh_identity_file(val=nil)
         set :ssh_identity_file, File.expand_path(val) unless val.nil?
-        @settings.include?(:ssh_identity_file) ? @settings[:ssh_identity_file] : File.join(ssh_identity_dir, "#{keypair}.pem")
+        if @settings.include?(:ssh_identity_file) 
+          p "@settings has an identity file"
+          p @settigns[:ssh_identity_file]
+          @settings[:ssh_identity_file] 
+        else 
+          # The default ssh key extension could be a few differnet things.  
+          # Try reasonable options based on the keypair name, but only
+          # return success if we can see it.  Otherwise revert to the
+          # cluster_chef default.
+          
+          # e.g.: id_rsa
+          fname = File.join(ssh_identity_dir, "#{keypair}_rsa")
+          if File.exists?(fname)
+            return fname
+          end
+          # e.g. keyfile is named foo
+          fname = File.join(ssh_identity_dir, "#{keypair}")
+          if File.exists?(fname)
+            return fname
+          end
+          # e.g. keyfile is named id_foo
+          fname = File.join(ssh_identity_dir, "id_#{keypair}")
+          if File.exists?(fname)
+            return fname
+          end
+          # last, revert to the prior default behavior.
+          File.join(ssh_identity_dir, "#{keypair}.pem")
+        end
       end
 
       # ID of the machine image to use.
@@ -330,63 +357,63 @@ module ClusterChef
           #
           # Natty (Ubuntu 11.04)
           #
-          %w[ ap-northeast-1       32-bit  ebs             natty                          ] => { :image_id => 'ami-00b10501', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ ap-northeast-1       32-bit  instance        natty                          ] => { :image_id => 'ami-f0b004f1', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ ap-northeast-1       64-bit  ebs             natty                          ] => { :image_id => 'ami-02b10503', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ ap-northeast-1       64-bit  instance        natty                          ] => { :image_id => 'ami-fab004fb', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
+          %w[ ap-northeast-1       32-bit  ebs             natty                          ] => { :image_id => 'ami-00b10501', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ ap-northeast-1       32-bit  instance        natty                          ] => { :image_id => 'ami-f0b004f1', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ ap-northeast-1       64-bit  ebs             natty                          ] => { :image_id => 'ami-02b10503', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ ap-northeast-1       64-bit  instance        natty                          ] => { :image_id => 'ami-fab004fb', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
           #
-          %w[ ap-southeast-1       32-bit  ebs             natty                          ] => { :image_id => 'ami-06255f54', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ ap-southeast-1       32-bit  instance        natty                          ] => { :image_id => 'ami-72255f20', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ ap-southeast-1       64-bit  ebs             natty                          ] => { :image_id => 'ami-04255f56', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ ap-southeast-1       64-bit  instance        natty                          ] => { :image_id => 'ami-7a255f28', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
+          %w[ ap-southeast-1       32-bit  ebs             natty                          ] => { :image_id => 'ami-06255f54', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ ap-southeast-1       32-bit  instance        natty                          ] => { :image_id => 'ami-72255f20', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ ap-southeast-1       64-bit  ebs             natty                          ] => { :image_id => 'ami-04255f56', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ ap-southeast-1       64-bit  instance        natty                          ] => { :image_id => 'ami-7a255f28', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
           #
-          %w[ eu-west-1            32-bit  ebs             natty                          ] => { :image_id => 'ami-a4f7c5d0', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ eu-west-1            32-bit  instance        natty                          ] => { :image_id => 'ami-fef7c58a', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ eu-west-1            64-bit  ebs             natty                          ] => { :image_id => 'ami-a6f7c5d2', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ eu-west-1            64-bit  instance        natty                          ] => { :image_id => 'ami-c0f7c5b4', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
+          %w[ eu-west-1            32-bit  ebs             natty                          ] => { :image_id => 'ami-a4f7c5d0', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ eu-west-1            32-bit  instance        natty                          ] => { :image_id => 'ami-fef7c58a', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ eu-west-1            64-bit  ebs             natty                          ] => { :image_id => 'ami-a6f7c5d2', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ eu-west-1            64-bit  instance        natty                          ] => { :image_id => 'ami-c0f7c5b4', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
           #
-          %w[ us-east-1            32-bit  ebs             natty                          ] => { :image_id => 'ami-e358958a', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-east-1            32-bit  instance        natty                          ] => { :image_id => 'ami-c15994a8', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-east-1            64-bit  ebs             natty                          ] => { :image_id => 'ami-fd589594', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-east-1            64-bit  instance        natty                          ] => { :image_id => 'ami-71589518', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
+          %w[ us-east-1            32-bit  ebs             natty                          ] => { :image_id => 'ami-e358958a', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-east-1            32-bit  instance        natty                          ] => { :image_id => 'ami-c15994a8', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-east-1            64-bit  ebs             natty                          ] => { :image_id => 'ami-fd589594', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-east-1            64-bit  instance        natty                          ] => { :image_id => 'ami-71589518', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
           #
-          %w[ us-west-1            32-bit  ebs             natty                          ] => { :image_id => 'ami-43580406', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-west-1            32-bit  instance        natty                          ] => { :image_id => 'ami-e95f03ac', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-west-1            64-bit  ebs             natty                          ] => { :image_id => 'ami-4d580408', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-west-1            64-bit  instance        natty                          ] => { :image_id => 'ami-a15f03e4', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
+          %w[ us-west-1            32-bit  ebs             natty                          ] => { :image_id => 'ami-43580406', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-west-1            32-bit  instance        natty                          ] => { :image_id => 'ami-e95f03ac', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-west-1            64-bit  ebs             natty                          ] => { :image_id => 'ami-4d580408', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-west-1            64-bit  instance        natty                          ] => { :image_id => 'ami-a15f03e4', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
 
           #
           # Oneric (Ubuntu 11.10)
           #
-          %w[ ap-northeast-1       32-bit  ebs             oneric                         ] => { :image_id => 'ami-2e90242f', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ ap-northeast-1       32-bit  instance        oneric                         ] => { :image_id => 'ami-e49723e5', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ ap-northeast-1       64-bit  ebs             oneric                         ] => { :image_id => 'ami-30902431', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ ap-northeast-1       64-bit  instance        oneric                         ] => { :image_id => 'ami-fa9723fb', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
+          %w[ ap-northeast-1       32-bit  ebs             oneric                         ] => { :image_id => 'ami-2e90242f', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ ap-northeast-1       32-bit  instance        oneric                         ] => { :image_id => 'ami-e49723e5', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ ap-northeast-1       64-bit  ebs             oneric                         ] => { :image_id => 'ami-30902431', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ ap-northeast-1       64-bit  instance        oneric                         ] => { :image_id => 'ami-fa9723fb', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
           #
-          %w[ ap-southeast-1       32-bit  ebs             oneric                         ] => { :image_id => 'ami-76057f24', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ ap-southeast-1       32-bit  instance        oneric                         ] => { :image_id => 'ami-82047ed0', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ ap-southeast-1       64-bit  ebs             oneric                         ] => { :image_id => 'ami-7a057f28', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ ap-southeast-1       64-bit  instance        oneric                         ] => { :image_id => 'ami-54057f06', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
+          %w[ ap-southeast-1       32-bit  ebs             oneric                         ] => { :image_id => 'ami-76057f24', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ ap-southeast-1       32-bit  instance        oneric                         ] => { :image_id => 'ami-82047ed0', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ ap-southeast-1       64-bit  ebs             oneric                         ] => { :image_id => 'ami-7a057f28', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ ap-southeast-1       64-bit  instance        oneric                         ] => { :image_id => 'ami-54057f06', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
           #
-          %w[ eu-west-1            32-bit  ebs             oneric                         ] => { :image_id => 'ami-65b28011', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ eu-west-1            32-bit  instance        oneric                         ] => { :image_id => 'ami-dfcdffab', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ eu-west-1            64-bit  ebs             oneric                         ] => { :image_id => 'ami-61b28015', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ eu-west-1            64-bit  instance        oneric                         ] => { :image_id => 'ami-75b28001', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
+          %w[ eu-west-1            32-bit  ebs             oneric                         ] => { :image_id => 'ami-65b28011', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ eu-west-1            32-bit  instance        oneric                         ] => { :image_id => 'ami-dfcdffab', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ eu-west-1            64-bit  ebs             oneric                         ] => { :image_id => 'ami-61b28015', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ eu-west-1            64-bit  instance        oneric                         ] => { :image_id => 'ami-75b28001', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
           #
-          %w[ us-east-1            32-bit  ebs             oneric                         ] => { :image_id => 'ami-a7f539ce', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-east-1            32-bit  instance        oneric                         ] => { :image_id => 'ami-29f43840', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-east-1            64-bit  ebs             oneric                         ] => { :image_id => 'ami-bbf539d2', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-east-1            64-bit  instance        oneric                         ] => { :image_id => 'ami-21f53948', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
+          %w[ us-east-1            32-bit  ebs             oneric                         ] => { :image_id => 'ami-a7f539ce', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-east-1            32-bit  instance        oneric                         ] => { :image_id => 'ami-29f43840', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-east-1            64-bit  ebs             oneric                         ] => { :image_id => 'ami-bbf539d2', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-east-1            64-bit  instance        oneric                         ] => { :image_id => 'ami-21f53948', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
           #
-          %w[ us-west-1            32-bit  ebs             oneric                         ] => { :image_id => 'ami-79772b3c', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-west-1            32-bit  instance        oneric                         ] => { :image_id => 'ami-a7762ae2', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-west-1            64-bit  ebs             oneric                         ] => { :image_id => 'ami-7b772b3e', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-west-1            64-bit  instance        oneric                         ] => { :image_id => 'ami-4b772b0e', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
+          %w[ us-west-1            32-bit  ebs             oneric                         ] => { :image_id => 'ami-79772b3c', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-west-1            32-bit  instance        oneric                         ] => { :image_id => 'ami-a7762ae2', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-west-1            64-bit  ebs             oneric                         ] => { :image_id => 'ami-7b772b3e', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-west-1            64-bit  instance        oneric                         ] => { :image_id => 'ami-4b772b0e', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
           #
-          %w[ us-west-2            32-bit  ebs             oneric                         ] => { :image_id => 'ami-20f97410', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-west-2            32-bit  instance        oneric                         ] => { :image_id => 'ami-52f67b62', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-west-2            64-bit  ebs             oneric                         ] => { :image_id => 'ami-2af9741a', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
-          %w[ us-west-2            64-bit  instance        oneric                         ] => { :image_id => 'ami-56f67b66', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu10.04-gems", },
+          %w[ us-west-2            32-bit  ebs             oneric                         ] => { :image_id => 'ami-20f97410', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-west-2            32-bit  instance        oneric                         ] => { :image_id => 'ami-52f67b62', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-west-2            64-bit  ebs             oneric                         ] => { :image_id => 'ami-2af9741a', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
+          %w[ us-west-2            64-bit  instance        oneric                         ] => { :image_id => 'ami-56f67b66', :ssh_user => 'ubuntu', :bootstrap_distro => "ubuntu11.04-cluster_chef_knewton", },
         })
     end
 
