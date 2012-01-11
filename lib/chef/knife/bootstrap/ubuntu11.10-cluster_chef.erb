@@ -49,7 +49,8 @@ apt-get install -y build-essential wget ruby${VER} ruby${VER}-dev ri${VER} runit
 if ruby -e "exit(%x{gem --version} < \"1.6.2\" ? 0 : -1 )" ; then
   echo -e "`date` \n\n**** \n**** Updating rubygems:\n****\n"
   # screw you Debian
-  REALLY_GEM_UPDATE_SYSTEM=1 gem update --system
+  export REALLY_GEM_UPDATE_SYSTEM=1 
+  gem update --system
   # screw you rubygems
   for foo in /usr/lib/ruby/site_ruby/*/rubygems/deprecate.rb
   do

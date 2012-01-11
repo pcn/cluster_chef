@@ -80,8 +80,6 @@ module ClusterChef
       def ssh_identity_file(val=nil)
         set :ssh_identity_file, File.expand_path(val) unless val.nil?
         if @settings.include?(:ssh_identity_file) 
-          p "@settings has an identity file"
-          p @settigns[:ssh_identity_file]
           @settings[:ssh_identity_file] 
         else 
           # The default ssh key extension could be a few differnet things.  

@@ -118,7 +118,7 @@ module ClusterChef
       bootstrap.config[:ssh_user]       = config[:ssh_user]       || server.cloud.ssh_user
       bootstrap.config[:attribute]      = config[:attribute]
       bootstrap.config[:identity_file]  = config[:identity_file]  || server.cloud.ssh_identity_file
-      bootstrap.config[:distro]         = config[:distro]         || server.cloud.bootstrap_distro
+      bootstrap.config[:distro]         = server.cloud.bootstrap_distro
       bootstrap.config[:use_sudo]       = true unless config[:use_sudo] == false
       bootstrap.config[:chef_node_name] = server.fullname
       bootstrap.config[:client_key]     = server.client_key.body            if server.client_key.body

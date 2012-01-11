@@ -93,7 +93,7 @@ module ClusterChef
 
     require cluster_file
     unless clusters[cluster_name] then  die("#{cluster_file} was supposed to have the definition for the #{cluster_name} cluster, but didn't") end
-
+    p clusters
     clusters[cluster_name]
   end
 
