@@ -24,6 +24,7 @@ a.out
 *.o
 *.pyc
 *.so
+*.gem
 
 ## OTHER SCM
 .bzr
@@ -49,3 +50,6 @@ metadata.json
 *.pem
 .rvmrc
 vendor/*
+
+## Local convention (-pn)
+.orig

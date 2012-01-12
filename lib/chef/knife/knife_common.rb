@@ -33,6 +33,9 @@ module ClusterChef
       end
       ui.info("Inventorying servers in #{predicate_str(cluster_name, facet_name, slice_indexes)}")
       cluster = ClusterChef.load_cluster(cluster_name)
+      p "Cluster's class is:"
+      p cluster.methods
+      p cluster.inspect
       cluster.resolve!
       cluster.discover!
       cluster.slice(facet_name, slice_indexes)

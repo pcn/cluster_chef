@@ -111,6 +111,7 @@ module ClusterChef
       #
       cloud.reverse_merge!(facet.cloud)
       cloud.reverse_merge!(cluster.cloud)
+
       #
       cloud.user_data({
           :chef_server            => Chef::Config.chef_server_url,

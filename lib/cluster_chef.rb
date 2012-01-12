@@ -87,13 +87,13 @@ module ClusterChef
     raise ArgumentError, "Please supply a cluster name" if cluster_name.to_s.empty?
     return clusters[cluster_name] if clusters[cluster_name]
 
+    # XXX put discovery/inferrence of cluster definitions here.
     cluster_file = cluster_filenames[cluster_name] or die("Couldn't find a definition for #{cluster_name} in cluster_path: #{cluster_path.inspect}")
 
     Chef::Log.info("Loading cluster #{cluster_file}")
-
     require cluster_file
+
     unless clusters[cluster_name] then  die("#{cluster_file} was supposed to have the definition for the #{cluster_name} cluster, but didn't") end
-    p clusters
     clusters[cluster_name]
   end
 

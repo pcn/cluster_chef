@@ -35,6 +35,9 @@ class Chef
 
         # Load the cluster/facet/slice/whatever
         target = get_slice(* @name_args)
+        p "target.class is:"
+        p target.class
+        p target.inspect
         #
         # Dump entire contents of objects if -VV flag given
         #
