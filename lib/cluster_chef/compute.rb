@@ -40,6 +40,8 @@ module ClusterChef
       raise "Only have ec2 so far" if cloud_provider && (cloud_provider != :ec2)
       @cloud ||= ClusterChef::Cloud::Ec2.new(self)
       @cloud.configure(attrs, &block)
+      # p "@cloud is:"
+      # p @cloud
       @cloud
     end
 
