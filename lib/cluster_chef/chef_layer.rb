@@ -40,8 +40,15 @@ module ClusterChef
 
   ComputeBuilder.class_eval do
     def new_chef_role(role_name, cluster, facet=nil)
-      chef_role = Chef::Role.new
-      chef_role.name        role_name
+      begin
+        chef_role = Chef::Role.new
+        chef_role.name        role_name
+      rescue Chef::Exceptions::ValidationFailed => e
+        Chef::Log.error("Failed trying to create the group named #{role_name}")
+        Chef::Log.debug("#{e}") # Only print the full stacktrace if run with -VV
+        raise e
+      end
+        
       chef_role.description "ClusterChef generated role for #{[cluster_name, facet_name].compact.join('-')}" unless chef_role.description
       chef_role.instance_eval{ @cluster = cluster; @facet = facet; }
       @chef_roles << chef_role

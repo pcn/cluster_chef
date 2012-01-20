@@ -42,8 +42,15 @@ class Chef
         :description => "Where to find the pid file. Typically /var/run/chef/client.pid (init.d) or /etc/sv/chef-client/supervise/pid (runit)",
         :default     => "/etc/sv/chef-client/supervise/pid"
 
+      option :once,
+        :long        => "--once",
+        :description => "When chef is not kept running, run chef-client --once instead of killing the process",
+        :default     => false
+
+
       unless defined?(KICKSTART_SCRIPT)
-        KICKSTART_SCRIPT = <<EOF
+        if :once
+          KICKSTART_SCRIPT = <<EOF
 #!/bin/bash
 set -e
 <%= ((config[:verbosity].to_i > 1) ? "set -v" : "") %>
@@ -72,11 +79,47 @@ pid="$(sudo cat $pid_file)"
 sudo kill -USR1 "$pid"
 sed -r "/(ERROR: Sleeping for [0-9]+ seconds before trying again|INFO: Report handlers complete)\$/{q}" $pipe
 EOF
-      end
+        end
+      else
+        KICKSTART_SCRIPT_ONCE = <<EOF
+#!/bin/bash
+set -e
+<%= ((config[:verbosity].to_i > 1) ? "set -v" : "") %>
+
+# chef_client="<%= config[:chef_client] %>"
+# config_file=/var/log/chef/client.log
+
+declare tail_pid
+
+on_exit() {
+  rm -f $pipe
+  [ -n "$tail_pid" ] && kill $tail_pid
+}
+
+trap "on_exit" EXIT ERR
+
+pipe=/tmp/pipe-$$
+mkfifo $pipe
+
+tail -fn0 "$log_file" > $pipe &
+
+tail_pid=$!
+
+sudo true
+pid="$(sudo cat $pid_file)"
+sudo kill -USR1 "$pid"
+sed -r "/(ERROR: Sleeping for [0-9]+ seconds before trying again|INFO: Report handlers complete)\$/{q}" $pipe
+EOF
+        end
+        
 
       def run
         @name_args = [ @name_args.join(' ') ]
-        script = Erubis::Eruby.new(KICKSTART_SCRIPT).result(:config => config)
+        if (@once) 
+          script = Erubis::Eruby.new(KICKSTART_SCRIPT_ONCE).result(:config => config)
+        else
+          script = Erubis::Eruby.new(KICKSTART_SCRIPT).result(:config => config)
+        end
         @name_args[1] = script
         super
       end
