@@ -102,8 +102,15 @@ module ClusterChef
           next if group_permission_already_set?(group, authed_group, authed_owner)
           step("authorizing access from all machines in #{authed_group}", :blue)
           self.class.get_or_create(authed_group, "Authorized to access nfs server")
-          begin  group.authorize_group_and_owner(authed_group, authed_owner)
-          rescue StandardError => e ; ui.warn e ; end
+          begin  
+            group.authorize_group_and_owner(authed_group, authed_owner)
+          # rescue Fog.Compute.AWS.Error => e 
+          #      p e
+          #      ui.warn "Permision already exists, ignoring" 
+          #      exit
+          rescue StandardError => e ; 
+            ui.warn e ; 
+          end
         end
         @range_authorizations.uniq.each do |range, cidr_ip, ip_protocol|
           next if range_permission_already_set?(group, range, cidr_ip, ip_protocol)

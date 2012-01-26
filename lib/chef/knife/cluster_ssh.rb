@@ -59,7 +59,7 @@ class Chef
           address
         end.compact
 
-        (ui.fatal("No nodes returned from search!"); exit 10) if addresses.nil? || addresses.length == 0
+        (ui.fatal("No nodes returned from search (are you configured with the correct aws ID?)!"); exit 10) if addresses.nil? || addresses.length == 0
 
         session_from_list(addresses)
       end

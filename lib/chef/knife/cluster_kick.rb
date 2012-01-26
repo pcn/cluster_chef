@@ -42,15 +42,13 @@ class Chef
         :description => "Where to find the pid file. Typically /var/run/chef/client.pid (init.d) or /etc/sv/chef-client/supervise/pid (runit)",
         :default     => "/etc/sv/chef-client/supervise/pid"
 
-      option :once,
+      option :use_once,
         :long        => "--once",
         :description => "When chef is not kept running, run chef-client --once instead of killing the process",
-        :default     => false
-
+        :boolean     => false
 
       unless defined?(KICKSTART_SCRIPT)
-        if :once
-          KICKSTART_SCRIPT = <<EOF
+        KICKSTART_SCRIPT = <<EOF
 #!/bin/bash
 set -e
 <%= ((config[:verbosity].to_i > 1) ? "set -v" : "") %>
@@ -80,42 +78,24 @@ sudo kill -USR1 "$pid"
 sed -r "/(ERROR: Sleeping for [0-9]+ seconds before trying again|INFO: Report handlers complete)\$/{q}" $pipe
 EOF
         end
-      else
+
         KICKSTART_SCRIPT_ONCE = <<EOF
 #!/bin/bash
 set -e
 <%= ((config[:verbosity].to_i > 1) ? "set -v" : "") %>
 
-# chef_client="<%= config[:chef_client] %>"
-# config_file=/var/log/chef/client.log
-
-declare tail_pid
-
-on_exit() {
-  rm -f $pipe
-  [ -n "$tail_pid" ] && kill $tail_pid
-}
-
-trap "on_exit" EXIT ERR
-
-pipe=/tmp/pipe-$$
-mkfifo $pipe
-
-tail -fn0 "$log_file" > $pipe &
-
-tail_pid=$!
+chef_client="<%= config[:chef_client] || '/usr/bin/chef-client' %>"
 
 sudo true
-pid="$(sudo cat $pid_file)"
-sudo kill -USR1 "$pid"
-sed -r "/(ERROR: Sleeping for [0-9]+ seconds before trying again|INFO: Report handlers complete)\$/{q}" $pipe
+sudo $chef_client --once # |  \
+#  sed -r "/(ERROR: Sleeping for [0-9]+ seconds before trying again|INFO: Report handlers complete)\$/{q}"
 EOF
-        end
-        
+
 
       def run
         @name_args = [ @name_args.join(' ') ]
-        if (@once) 
+        use_once = Chef::Config[:knife][:use_once] || config[:use_once]
+        if (use_once) 
           script = Erubis::Eruby.new(KICKSTART_SCRIPT_ONCE).result(:config => config)
         else
           script = Erubis::Eruby.new(KICKSTART_SCRIPT).result(:config => config)
