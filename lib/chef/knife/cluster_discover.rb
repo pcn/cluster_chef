@@ -82,10 +82,8 @@ class Chef
           elsif chef_node.name # ahh, desperation.  Old server instances, or broken instance
             Chef::Log.warn("#{chef_node.name} doesn't have proper node attributes for a cluster node")
             ( cluster_name, facet_name, facet_index ) = chef_node.name.split(/-/)
-            # chef_node.cluster_name                    = cluster_name
-            # chef_node.facet_name                      = facet_name
-            # chef_node.facet_index                     = facet_index
           else
+            Chef::Log.warn("#{chef_node} can't be made into a cluster node. Bad node or bad search, perhaps?")            
             next
           end
           if cluster_name == q_cluster_name
