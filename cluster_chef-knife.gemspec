@@ -32,7 +32,7 @@ Gem::Specification.new do |s|
     "config/client.rb",
     "lib/chef/knife/bootstrap/ubuntu10.04-basic.erb",
     "lib/chef/knife/bootstrap/ubuntu10.04-cluster_chef.erb",
-    "lib/chef/knife/bootstrap/ubuntu11.04-knewton_cluster_chef.erb",
+    "lib/chef/knife/bootstrap/ubuntu11.04-cluster_chef_knewton.erb",
     "lib/chef/knife/bootstrap/ubuntu11.10-cluster_chef.erb",
     "lib/chef/knife/cluster_bootstrap.rb",
     "lib/chef/knife/cluster_kick.rb",
