@@ -188,7 +188,7 @@ class Chef::Provider::Execute
     Chef::Log.info("#{@new_resource} ran successfully")
   end
 end
-Chef::Log.warn("All executing messages (including apt) begin suppressed by /etc/chef/client.rb")
+Chef::Log.warn("All executing messages (including apt) being suppressed by /etc/chef/client.rb")
 EOP
 ) > /etc/chef/client.rb
 
