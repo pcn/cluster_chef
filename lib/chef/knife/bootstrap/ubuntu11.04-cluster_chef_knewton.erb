@@ -55,24 +55,24 @@ APT_UPDATED=no
 
 if [ ! -e /usr/bin/ruby ] ; then
     if [ "$APT_UPDATED" != "yes" ] ; then
-        echo -e "`date` \n\n**** \n**** apt update:\n****\n"
+        echo -e "`date` \n\n**** \n**** apt update:\n****\n" | throttle_verbosity
         (apt-get -y update && APT_UPDATED=yes ) 2>&1 | throttle_verbosity
     fi      
         
 
-    echo -e "`date` \n\n**** \n**** Installing base ruby packages for version $VER\n****\n"
+    echo -e "`date` \n\n**** \n**** Installing base ruby packages for version $VER\n****\n" | throttle_verbosity
 
     echo apt-get -y install build-essential wget ruby${VER} ruby${VER}-dev ri${VER} runit zlib1g-dev libssl-dev openssl libcurl4-openssl-dev libreadline6-dev libyaml-dev 2>&1 | throttle_verbosity
     apt-get -y install build-essential wget ruby${VER} ruby${VER}-dev ri${VER} runit zlib1g-dev libssl-dev openssl libcurl4-openssl-dev libreadline6-dev libyaml-dev 2>&1 | throttle_verbosity
 
-    update-alternatives --install /usr/bin/ruby ruby /usr/bin/ruby${VER} 400 --slave /usr/share/man/man1/ruby.1.gz ruby.gz /usr/share/man/man1/ruby${MANVER}.gz --slave /usr/bin/ri ri /usr/bin/ri${VER} --slave /usr/bin/irb irb /usr/bin/irb${VER}
-    update-alternatives --install /usr/bin/gem gem /usr/bin/gem${VER} 400
+    update-alternatives --install /usr/bin/ruby ruby /usr/bin/ruby${VER} 400 --slave /usr/share/man/man1/ruby.1.gz ruby.gz /usr/share/man/man1/ruby${MANVER}.gz --slave /usr/bin/ri ri /usr/bin/ri${VER} --slave /usr/bin/irb irb /usr/bin/irb${VER}  | throttle_verbosity
+    update-alternatives --install /usr/bin/gem gem /usr/bin/gem${VER} 400  | throttle_verbosity
 else 
-    echo -e "`date` \n\n**** \n****ruby exists, not installing\n****\n"
+    echo -e "`date` \n\n**** \n****ruby exists, not installing\n****\n"  | throttle_verbosity
 fi
 
 if [ "0" == $(/usr/bin/ruby -e "puts(%x{gem --version} < \"1.6.2\" ? 0 : -1 )") ] ; then
-  echo -e "`date` \n\n**** \n**** Updating rubygems:\n****\n"
+  echo -e "`date` \n\n**** \n**** Updating rubygems:\n****\n"  | throttle_verbosity
   # screw you Debian
   /usr/bin/env REALLY_GEM_UPDATE_SYSTEM=1 gem update --system 2>&1 | throttle_verbosity
   # screw you rubygems
@@ -82,25 +82,25 @@ if [ "0" == $(/usr/bin/ruby -e "puts(%x{gem --version} < \"1.6.2\" ? 0 : -1 )") 
     [ -f "$foo" ] && sudo sed -i.bak "s/@skip ||= false/true/" "$foo"
   done
 else 
-    echo -e "`date` \n\n**** \n****gem version is good, not upgrading it\n****\n"
+    echo -e "`date` \n\n**** \n****gem version is good, not upgrading it\n****\n"  | throttle_verbosity
 fi
 
 if [ ! -f /usr/bin/chef-client ] ; then
     if [ "$APT_UPDATED" != "yes" ] ; then
-        echo -e "`date` \n\n**** \n**** apt update:\n****\n"
+        echo -e "`date` \n\n**** \n**** apt update:\n****\n"  | throttle_verbosity
         (apt-get -y update  && APT_UPDATED=yes ) 2>&1 | throttle_verbosity
     fi
 
-    echo -e "`date` \n\n**** \n**** Installing chef:\n****\n"
+    echo -e "`date` \n\n**** \n**** Installing chef:\n****\n"          2>&1 | throttle_verbosity
     gem install ohai --no-rdoc --no-ri                                 2>&1 | throttle_verbosity
     gem install chef --no-rdoc --no-ri <%= bootstrap_version_string %> 2>&1 | throttle_verbosity
     gem install      --no-rdoc --no-ri bundler pry cheat               2>&1 | throttle_verbosity   
     
 else # no chef-client
-    echo -e "`date` \n\n**** \n**** Chef is present -- skipping chef installation\n****\n"
+    echo -e "`date` \n\n**** \n**** Chef is present -- skipping chef installation\n****\n"  | throttle_verbosity
 fi 
 
-echo -e "`date` \n\n**** \n**** Knifing in the chef client config files:\n****\n"
+echo -e "`date` \n\n**** \n**** Knifing in the chef client config files:\n****\n" | throttle_verbosity
 mkdir -p /etc/chef
 
 <%- if @config[:client_key] %>
@@ -122,7 +122,7 @@ awk NF /tmp/knife-bootstrap/validation.pem > /etc/chef/validation.pem
 # See https://github.com/schisamo/chef/commit/d0789ffd97a5cd221d147874c492111d51be9cc1
 # The below relies on the config parameter "encrypted_data_bag_secret" existing in the 
 # knife config.  This allows secrets to be stored on a less trusted server.
-echo -e "`date` \n\n**** \n**** Knifing in the chef encrypted data bag secret file:\n****\n"
+echo -e "`date` \n\n**** \n**** Knifing in the chef encrypted data bag secret file:\n****\n"  | throttle_verbosity
 (
 cat <<EOP
 <%= encrypted_data_bag_secret %>
@@ -136,7 +136,7 @@ chmod 600 /etc/chef/encrypted_data_bag_secret
 # cd /tmp
 # rm -rf /tmp/knife-bootstrap
 
-echo -e "`date` \n\n**** \n**** Creating chef client script:\n****\n"
+echo -e "`date` \n\n**** \n**** Creating chef client script:\n****\n"  | throttle_verbosity
 
 (
 cat <<EOP
@@ -199,7 +199,7 @@ cat <<EOP
 EOP
 ) > /etc/chef/first-boot.json
 
-echo -e "`date` \n\n**** \n**** Adding chef client runit scripts:\n****\n"
+echo -e "`date` \n\n**** \n**** Adding chef client runit scripts:\n****\n" | throttle_verbosity
 
 mkdir -p /var/log/chef /var/chef /etc/service /etc/sv/chef-client/{log/main,supervise} 
 killall chef-client 2>/dev/null || /bin/true
@@ -223,9 +223,9 @@ EOF
 
 chmod +x  /etc/sv/chef-client/log/run /etc/sv/chef-client/run
 ln -nfs /usr/bin/sv /etc/init.d/chef-client
-update-service -a /etc/sv/chef-client chef-client
+update-service -a /etc/sv/chef-client chef-client 2>&1  | throttle_verbosity
 ( for count in 1 2 3 4 5 6 7 8 ; do 
-    echo "Trying to stop chef-client, cycle ${count}"
+    echo "Trying to stop chef-client, cycle ${count}"  | throttle_verbosity
     # runit sleeps for 5 seconds, so being able to sleep longer than that
     # will ensure that the service files, etc. are created
     _rv=$(service chef-client stop >/dev/null 2>&1 ; echo $?)
@@ -233,22 +233,26 @@ update-service -a /etc/sv/chef-client chef-client
     sleep 2 # should sleep between 1 and 2 seconds
   done
 ) 
-service chef-client stop
+service chef-client stop 
 service chef-client disable
 
 <%- if (@config[:bootstrap_runs_chef_client].to_s == 'true') || (@chef_config.knife[:bootstrap_runs_chef_client].to_s == 'true') %>
-echo -e "`date` \n\n**** \n**** First run of chef:\n****\n"
+if [ "$APT_UPDATED" != "yes" ] ; then
+    echo -e "`date` \n\n**** \n**** apt update:\n****\n"  | throttle_verbosity
+    (apt-get -y update && APT_UPDATED=yes ) 2>&1 | throttle_verbosity
+fi      
+echo -e "\n`date` **** First run of chef:****"
 set -e
 <%= start_chef %>
 set +e
 <%- end %>
 
-echo -e "`date` \n\n**** \n**** Cleanup:\n****\n"
-updatedb
+echo -e "`date` \n\n**** \n**** Cleanup:\n****\n"  | throttle_verbosity
+# updatedb
 # echo -e "`date` \n\n**** \n**** Enabling chef client service:\n****\n"
 # ln -nfs /etc/sv/chef-client /etc/service/chef-client
 # We want to disable the chef-client and only run it manually from here on out.
-echo -e "`date` \n\n**** \n**** Removing chef-client from /etc/service:\n****\n"
+echo -e "`date` \n\n**** \n**** Removing chef-client from /etc/service:\n****\n"  | throttle_verbosity
 service chef-client disable
 # Now prevent it from being re-started
 rm /etc/service/chef-client

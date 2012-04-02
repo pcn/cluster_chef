@@ -6,6 +6,16 @@ bash -c '
 # * pushes the node identity into the first-boot.json
 # * installs the chef-client service and kicks off the first run of chef
 
+function throttle_verbosity {
+  # This function will send output to /dev/null if
+  # knife[:bootstrap_less_verbose] is true
+  <%- if @chef_config.knife[:bootstrap_less_verbose] == true %>
+  cat > /dev/null
+  <%- else %>
+  cat
+  <% end %>
+}
+
 echo "Template: ubuntu10.04-cluster_chef.erb"
 
 <%= (@config[:verbosity].to_i > 1 ? 'set -v' : '') %>
@@ -20,21 +30,21 @@ eval `cat /etc/lsb-release `
 export DEBIAN_FRONTEND=noninteractive
 
 if [ ! -f /usr/bin/chef-client ]; then
-echo -e "`date` \n\n**** \n**** apt update:\n****\n"
-apt-get    update
-apt-get -y upgrade
+echo -e "`date` \n\n**** \n**** apt update:\n****\n"  | throttle_verbosity
+apt-get    update  | throttle_verbosity
+apt-get -y upgrade  | throttle_verbosity
 
-echo -e "`date` \n\n**** \n**** Installing base packages:\n****\n"
-apt-get install -y build-essential wget runit runit-services zlib1g-dev libssl-dev openssl libcurl4-openssl-dev libreadline6-dev libyaml-dev
+echo -e "`date` \n\n**** \n**** Installing base packages:\n****\n"  | throttle_verbosity
+apt-get install -y build-essential wget runit runit-services zlib1g-dev libssl-dev openssl libcurl4-openssl-dev libreadline6-dev libyaml-dev  | throttle_verbosity
 
-echo -e "`date` \n\n**** \n**** Installing ruby version ${RUBY_VERSION}:\n****\n"
+echo -e "`date` \n\n**** \n**** Installing ruby version ${RUBY_VERSION}:\n****\n"  | throttle_verbosity
 
-wget ftp://ftp.ruby-lang.org//pub/ruby/1.9/ruby-${RUBY_VERSION}.tar.gz
-tar xzf ruby-${RUBY_VERSION}.tar.gz
-cd ruby-${RUBY_VERSION}
-./configure --with-ruby-version=${RUBY_VERSION} --prefix=/usr --program-suffix=${RUBY_VERSION}
-make -j2
-make install
+wget ftp://ftp.ruby-lang.org//pub/ruby/1.9/ruby-${RUBY_VERSION}.tar.gz  | throttle_verbosity
+tar xzf ruby-${RUBY_VERSION}.tar.gz  | throttle_verbosity
+cd ruby-${RUBY_VERSION} 
+./configure --with-ruby-version=${RUBY_VERSION} --prefix=/usr --program-suffix=${RUBY_VERSION} 2>&1 | throttle_verbosity
+make -j2                             2>&1 | throttle_verbosity
+make install                         2>&1 | throttle_verbosity
 
 sudo update-alternatives --remove-all gem && true
 update-alternatives \
@@ -44,30 +54,30 @@ update-alternatives \
   --slave   /usr/bin/erb  erb  /usr/bin/erb${RUBY_VERSION}      \
   --slave   /usr/bin/gem  gem  /usr/bin/gem${RUBY_VERSION}      \
   --slave   /usr/share/man/man1/ruby.1.gz ruby.1.gz             \
-  /usr/share/man/man1/ruby${RUBY_VERSION}.1
+  /usr/share/man/man1/ruby${RUBY_VERSION}.1  | throttle_verbosity
 
 if ruby -e "exit(%x{gem --version} < \"1.6.2\" ? 0 : -1 )" ; then
-  echo -e "`date` \n\n**** \n**** Updating rubygems:\n****\n"
-  gem install --no-rdoc --no-ri rubygems-update --version=1.6.2
-  update_rubygems --version=1.6.2
+  echo -e "`date` \n\n**** \n**** Updating rubygems:\n****\n"     | throttle_verbosity
+  gem install --no-rdoc --no-ri rubygems-update --version=1.6.2   | throttle_verbosity
+  update_rubygems --version=1.6.2                                 | throttle_verbosity
 fi
 
-echo -e "`date` \n\n**** \n**** Installing chef:\n****\n"
-gem install ohai --no-rdoc --no-ri
-gem install chef --no-rdoc --no-ri <%= bootstrap_version_string %>
-gem install      --no-rdoc --no-ri extlib json ruby-shadow right_aws
+echo -e "`date` \n\n**** \n**** Installing chef:\n****\n"            | throttle_verbosity
+gem install ohai --no-rdoc --no-ri                                   | throttle_verbosity
+gem install chef --no-rdoc --no-ri <%= bootstrap_version_string %>   | throttle_verbosity
+gem install      --no-rdoc --no-ri extlib json ruby-shadow right_aws | throttle_verbosity
 
 else # no chef-client
-echo -e "`date` \n\n**** \n**** Chef is present -- skipping apt/ruby/chef installation\n****\n"
+echo -e "`date` \n\n**** \n**** Chef is present -- skipping apt/ruby/chef installation\n****\n"   | throttle_verbosity
 fi 
 
 # fix a bug in chef that prevents debugging template errors
 bad_template_file='/usr/lib/ruby/gems/1.9.2-p290/gems/chef-0.10.4/lib/chef/mixin/template.rb'
 if  echo "0505c482b8b0b333ac71bbc8a1795d19  $bad_template_file" | md5sum -c - 2>/dev/null ; then
-  curl https://github.com/mrflip/chef/commit/655a1967253a8759afb54f30b818bbcb7c309198.patch | sudo patch $bad_template_file
+  curl https://github.com/mrflip/chef/commit/655a1967253a8759afb54f30b818bbcb7c309198.patch | sudo patch $bad_template_file  | throttle_verbosity
 fi
 
-echo -e "`date` \n\n**** \n**** Knifing in the chef client config files:\n****\n"
+echo -e "`date` \n\n**** \n**** Knifing in the chef client config files:\n****\n"   | throttle_verbosity
 mkdir -p /etc/chef
 
 <%- if @config[:client_key] %>
@@ -89,7 +99,7 @@ awk NF /tmp/knife-bootstrap/validation.pem > /etc/chef/validation.pem
 # See https://github.com/schisamo/chef/commit/d0789ffd97a5cd221d147874c492111d51be9cc1
 # The below relies on the config parameter "encrpyted_data_bag_secret" existing in the 
 # knife config.  This allows secrets to be stored on a less trusted server.
-echo -e "`date` \n\n**** \n**** Knifing in the chef data bag secret file:\n****\n"
+echo -e "`date` \n\n**** \n**** Knifing in the chef data bag secret file:\n****\n"   | throttle_verbosity
 (
 cat <<'EOP'
 <%= encrypted_data_bag_secret %>
@@ -99,12 +109,12 @@ awk NF /tmp/knife-bootstrap/encrypted_data_bag_secret > /etc/chef/encrypted_data
 chmod 600 /etc/chef/encrypted_data_bag_secret 
 
 
-echo -e "`date` \n\n**** \n**** Nuking our temp files:\n****\n"
+echo -e "`date` \n\n**** \n**** Nuking our temp files:\n****\n"   | throttle_verbosity
 
 cd /tmp
 # rm -rf /tmp/knife-bootstrap
 
-echo -e "`date` \n\n**** \n**** Creating chef client script:\n****\n"
+echo -e "`date` \n\n**** \n**** Creating chef client script:\n****\n"   | throttle_verbosity
 
 (
 cat <<'EOP'
@@ -168,8 +178,8 @@ cat <<'EOP'
 EOP
 ) > /etc/chef/first-boot.json
 
-echo -e "`date` \n\n**** \n**** Adding chef client runit scripts:\n****\n"
-service chef-client stop >/dev/null 2>&1 ; sleep 1 ; killall chef-client 2>/dev/null ; true
+echo -e "`date` \n\n**** \n**** Adding chef client runit scripts:\n****\n"                   | throttle_verbosity
+service chef-client stop >/dev/null 2>&1 ; sleep 1 ; killall chef-client 2>/dev/null ; true  | throttle_verbosity
 mkdir -p /var/log/chef /var/chef /etc/service /etc/sv/chef-client/{log/main,supervise} 
 cat > /etc/sv/chef-client/log/run <<EOF
 #!/bin/bash
@@ -183,21 +193,17 @@ EOF
 chmod +x  /etc/sv/chef-client/log/run /etc/sv/chef-client/run
 ln -nfs /usr/bin/sv /etc/init.d/chef-client
 
-service chef-client stop ; true
+service chef-client stop    | throttle_verbosity ; true
 
 <%- if (@config[:bootstrap_runs_chef_client].to_s == 'true') || (@chef_config.knife[:bootstrap_runs_chef_client].to_s == 'true') %>
-echo -e "`date` \n\n**** \n**** First run of chef:\n****\n"
+echo -e "`date` \n\n**** \n**** First run of chef:\n****\n"    | throttle_verbosity
 set -e
 <%= start_chef %>
 set +e
 <%- end %>
 
-echo -e "`date` \n\n**** \n**** Cleanup:\n****\n"
-updatedb
-
-echo -e "`date` \n\n**** \n**** Enabling chef client service:\n****\n"
-ln -nfs /etc/sv/chef-client /etc/service/chef-client
-service chef-client start
+echo -e "`date` \n\n**** \n**** Cleanup:\n****\n"  | throttle_verbosity
+# updatedb
 
 echo -e "`date` \n\n**** \n**** Cluster Chef client bootstrap complete\n****\n"
 '
